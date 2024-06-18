@@ -33,6 +33,7 @@ public:
 	void DemuxRoutine();
 
 protected:
+	void DelayFrame();
 	void DecodeFrame();
 	void StartService();
 	void StopService();
@@ -46,6 +47,7 @@ private:
 	AVPacket * packet_ = nullptr;
 	AVPixelFormat pixel_format_;
 
+	int64_t last_pts_ = AV_NOPTS_VALUE;
 	int video_stream_index_ = 0;
 	int width_, height_;
 	const bool use_converter_ = true;

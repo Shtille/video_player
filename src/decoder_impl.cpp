@@ -1,6 +1,7 @@
 #include "decoder_impl.h"
 
 #include <cstdio>
+#include <chrono>
 
 static void LogError(const char* str)
 {
@@ -202,6 +203,28 @@ void DecoderImpl::DemuxRoutine()
 		}
 	}
 }
+void DecoderImpl::DelayFrame()
+{
+	// https://github.com/FFmpeg/FFmpeg/blob/master/doc/examples/decode_filter_video.c#L180
+	int64_t delay;
+	AVRational time_base = format_context_->streams[video_stream_index_]->time_base;
+
+	frame_->pts = frame_->best_effort_timestamp;
+
+	if (frame_->pts != AV_NOPTS_VALUE)
+	{
+		if (last_pts_ != AV_NOPTS_VALUE)
+		{
+			// Sleep roughly right amount of time
+			delay = av_rescale_q(frame_->pts - last_pts_, time_base, AV_TIME_BASE_Q);
+			if (delay > 0 && delay < 1000000)
+			{
+				std::this_thread::sleep_for(std::chrono::microseconds(delay));
+			}
+		}
+		last_pts_ = frame_->pts;
+	}
+}
 void DecoderImpl::DecodeFrame()
 {
 	uint8_t **data = frame_->data;
@@ -220,6 +243,7 @@ void DecoderImpl::DecodeFrame()
 			linesize = converter_.get_linesize();
 		}
 	}
+	DelayFrame();
 	// Call frame callback with decoded data
 	if (listener_ != nullptr)
 		listener_->OnFrameReady(data, linesize, codec_context_->frame_num);

@@ -8,5 +8,6 @@ void main()
 {
     vec4 clip_position = vec4(a_position, 1.0);
     v_texcoord = (clip_position.xy + 1.0) * 0.5;
+    v_texcoord.y = 1.0 - v_texcoord.y;
     gl_Position = clip_position;
 }
